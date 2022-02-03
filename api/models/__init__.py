@@ -21,9 +21,9 @@ class DBModel:
         insert_values_list = []
         for _ in values:
             last_col_no = columns_no + first_col_no
-            values_query = ', '.join(['${}'.format(c_no) for c_no in
+            values_query = ', '.join([f'${c_no}' for c_no in
                                       range(first_col_no, last_col_no)])
-            insert_values_list.append('({})'.format(values_query))
+            insert_values_list.append(f'({values_query})')
             first_col_no = last_col_no
         return ', '.join(insert_values_list)
 
@@ -31,10 +31,9 @@ class DBModel:
         """SQL INSERT Query
         columns: str (ie: name, age)
         *values: tuples (ie: ('Nano', 33))"""
-        query = 'INSERT INTO {} ({}) VALUES {}'.format(
-            self.tablename, columns, self._insert_values_query_str(columns, *values))
+        query = f'INSERT INTO {self.tablename} ({columns}) VALUES {self._insert_values_query_str(columns, *values)}'
         if on_conflict is not None:
-            query += ' ON CONFICT {}'.format(on_conflict)
+            query += f' ON CONFICT {on_conflict}'
         if return_id:
             query += ' RETURNING id'
         values_args = list(chain(*values))
@@ -51,13 +50,13 @@ class DBModel:
         query_args = list(values)
         query_args += self._where_args(*where)
         update_query_str = ', '.join([
-            '{} = ${}'.format(c.strip(), c_no) for c_no, c in
+            f'{c.strip()} = ${c_no}' for c_no, c in
             enumerate(columns.split(','), 1)])
-        query = 'UPDATE {} SET {}'.format(self.tablename, update_query_str)
+        query = f'UPDATE {self.tablename} SET {update_query_str}'
         if where:
             where_query_str = self._where_str(
                 *where, first_arg_no=(len(values) + 1))
-            query += ' WHERE {}'.format(where_query_str)
+            query += f' WHERE {where_query_str}'
         query += ' RETURNING *'
         async with self.pool.acquire() as connection:
             async with connection.transaction():
@@ -86,7 +85,7 @@ class DBModel:
         w_v_args = []
         for _ in args:
             arg_no += 1
-            w_v_args.append('${}'.format(arg_no))
+            w_v_args.append(f'${arg_no}')
         return w_v_args, arg_no
 
     def _where_str(self, *where, first_arg_no=1):
@@ -101,35 +100,35 @@ class DBModel:
                 qry_str, _ = w_v()
                 w_v_args, arg_no = self._w_v_args(w_v, arg_no)
                 qry_str = qry_str.format(*w_v_args)
-                where_cl.append('{} {} ({})'.format(w_c, w_e, qry_str))
+                where_cl.append(f'{w_c} {w_e} ({qry_str})')
             elif w_e == 'in':
                 w_v_args, arg_no = self._w_v_args(w_v, arg_no)
-                where_cl.append('{} in ({})'.format(w_c, ','.join(w_v_args)))
+                where_cl.append(f'{w_c} in ({",".join(w_v_args)})')
             else:
                 arg_no += 1
-                where_cl.append('{} {} ${}'.format(w_c, w_e, arg_no))
+                where_cl.append(f'{w_c} {w_e} ${arg_no}')
         return ' AND '.join(where_cl)
 
     def _select_query(self, *where, columns='*', extra=None):
-        query = 'SELECT {} FROM {}'.format(columns, self.tablename)
+        query = f'SELECT {columns} FROM {self.tablename}'
         query_args = []
         if where:
             query_args = self._where_args(*where)
             where_query_str = self._where_str(*where)
-            query += ' WHERE {}'.format(where_query_str)
+            query += f' WHERE {where_query_str}'
         if extra is not None:
-            query += ' {}'.format(extra)
+            query += f' {extra}'
         return query, query_args
 
     def _select_count_query(self, *where, columns='*', extra=None):
-        query = 'SELECT count({}) FROM {}'.format(columns, self.tablename)
+        query = f'SELECT count({columns}) FROM {self.tablename}'
         query_args = []
         if where:
             query_args = self._where_args(*where)
             where_query_str = self._where_str(*where)
-            query += ' WHERE {}'.format(where_query_str)
+            query += f' WHERE {where_query_str}'
         if extra is not None:
-            query += ' {}'.format(extra)
+            query += f' {extra}'
         return query, query_args
 
     async def select(self, *where, columns='*', extra=None):
@@ -186,10 +185,10 @@ class DBModel:
         """SQL DELETE Query
         *where: tuples <column, comparator, value> (ie: ('name', '=', 'Nano'))"""
         query_args = self._where_args(*where)
-        query = 'DELETE FROM {}'.format(self.tablename)
+        query = f'DELETE FROM {self.tablename}'
         if where:
             where_query_str = self._where_str(*where)
-            query += ' WHERE {}'.format(where_query_str)
+            query += f' WHERE {where_query_str}'
         query += ' RETURNING *'
         async with self.pool.acquire() as connection:
             async with connection.transaction():

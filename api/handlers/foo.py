@@ -13,7 +13,7 @@ async def get_handler(request):
     where_query = []
     if 'column' in request.query:
         where_query.append(
-            ('column', 'ilike', '%{}%'.format(request.query['column'])))
+            ('column', 'ilike', f'%{request.query["column"]}%'))
     result = await get_base_get(FooDB, *where_query,
                                 extra='ORDER BY column asc')(request)
     return result
